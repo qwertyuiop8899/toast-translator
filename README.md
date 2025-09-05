@@ -9,6 +9,9 @@ Traduttore e arricchitore in italiano per gli add-on di Stremio. Mette in proxy 
 - Traduce:
   - Catalogo: titolo, overview; arricchisce poster/sfondo quando possibile.
   - Meta (film/serie/anime): nome, descrizione; mappa e arricchisce i video per gli anime; aggiunge i flag "in arrivo".
+    - Campi aggiuntivi ora inclusi (solo quelli supportati da Stremio e utili):
+      - genres: lista di generi (stringhe in italiano)
+      - firstAired: data (ISO) derivata da `first_air_date` o `release_date`
 - Arricchimento immagini con fallback a più livelli:
   1) TMDB (preferenza italiano)
   2) TMDB (fallback inglese) – secondo tentativo solo se mancano immagini
@@ -50,7 +53,7 @@ Tipi supportati: `movie`, `series`, `anime`.
 
 - Meta (id IMDb tt...)
   - Usa prima l’API ufficiale TMDB (movie o tv), componendo:
-    - name, description, poster, background, logo (preferendo immagini italiane)
+  - name, description, genres, firstAired, poster, background, logo – preferendo immagini italiane
     - per le serie: tutte le stagioni/episodi via /tv/{id}/season/{n}; marca gli episodi futuri come “Prossimamente” e imposta behaviorHints.hasScheduledVideos
   - Se uno tra poster/sfondo/logo manca, effettua un secondo tentativo su TMDB con include_image_language in inglese e riprova la selezione
   - Poi fa il merge sopra i metadati di Cinemeta (solo non-anime), preservando liste video più complete ed evitando sovrascritture con campi vuoti
@@ -58,6 +61,7 @@ Tipi supportati: `movie`, `series`, `anime`.
 
 - Meta (kitsu/mal)
   - Converte in IMDb usando l’add-on Kitsu; poi ripete il flusso TMDB ufficiale descritto sopra
+  - Includerà anche genres e firstAired quando disponibili da TMDB
   - Post-processing per anime:
     - Per le serie: rimappa gli id degli episodi allo schema Kitsu; preserva i flag “in arrivo”
     - Se manca il logo TMDB, recupera il logo da Cinemeta meta
