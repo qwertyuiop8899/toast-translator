@@ -225,10 +225,7 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
                                         'overview': e.get('overview'),
                                         'description': e.get('overview'),
                                         'thumbnail': (tmdb.TMDB_BACK_URL + e['still_path']) if e.get('still_path') else None,
-                                        'firstAired': to_iso_z(e.get('air_date')),
-                                        'released': to_iso_z(e.get('air_date')),
-                                        'rating': e.get('vote_average'),
-                                        'runtime': e.get('runtime') or e.get('episode_run_time')
+                                        'firstAired': to_iso_z(e.get('air_date'))
                                     }
                                     if e.get('air_date') and is_future(e.get('air_date')):
                                         # Etichetta in italiano per il badge
@@ -251,19 +248,7 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
                                 meta_obj['meta']['name'] = series_name
                             if details.get('overview'):
                                 meta_obj['meta']['description'] = details.get('overview')
-                            # Series average episode runtime & rating
-                            try:
-                                # episode_run_time is a list in TMDB TV details
-                                runtimes = details.get('episode_run_time') or []
-                                if runtimes:
-                                    meta_obj['meta']['runtime'] = int(sum(runtimes)/len(runtimes))
-                            except Exception:
-                                pass
-                            try:
-                                if details.get('vote_average'):
-                                    meta_obj['meta']['rating'] = details.get('vote_average')
-                            except Exception:
-                                pass
+                            # (removed runtime/rating)
                             # Genres (array of strings) from TMDB -> Stremio supports `genres`
                             try:
                                 g_list = [g.get('name') for g in (details.get('genres') or []) if g.get('name')]
@@ -271,23 +256,11 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
                                     meta_obj['meta']['genres'] = g_list
                             except Exception:
                                 pass
-                            # First air date -> map to released/firstAired if not already present
+                            # First air date only
                             try:
                                 fad = details.get('first_air_date')
-                                if fad and not meta_obj['meta'].get('released'):
-                                    meta_obj['meta']['released'] = f"{fad}T00:00:00.000Z"
                                 if fad and not meta_obj['meta'].get('firstAired'):
                                     meta_obj['meta']['firstAired'] = f"{fad}T00:00:00.000Z"
-                            except Exception:
-                                pass
-                            # Homepage -> map into behaviorHints or links (Stremio accepts meta.links array of {name,url})
-                            try:
-                                hp = details.get('homepage')
-                                if hp:
-                                    meta_obj['meta'].setdefault('links', [])
-                                    # Avoid duplicates
-                                    if not any(l.get('url') == hp for l in meta_obj['meta']['links']):
-                                        meta_obj['meta']['links'].append({'name': 'Homepage', 'url': hp})
                             except Exception:
                                 pass
                             # immagini: preferisci italiane
@@ -341,17 +314,7 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
                                 meta_obj['meta']['name'] = movie_name
                             if movie_details.get('overview'):
                                 meta_obj['meta']['description'] = movie_details.get('overview')
-                            # Movie runtime & rating
-                            try:
-                                if movie_details.get('runtime'):
-                                    meta_obj['meta']['runtime'] = movie_details.get('runtime')
-                            except Exception:
-                                pass
-                            try:
-                                if movie_details.get('vote_average'):
-                                    meta_obj['meta']['rating'] = movie_details.get('vote_average')
-                            except Exception:
-                                pass
+                            # (removed movie runtime/rating)
                             # Genres
                             try:
                                 g_list = [g.get('name') for g in (movie_details.get('genres') or []) if g.get('name')]
@@ -359,23 +322,13 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
                                     meta_obj['meta']['genres'] = g_list
                             except Exception:
                                 pass
-                            # Release date
+                            # Release date -> firstAired only
                             try:
                                 rd = movie_details.get('release_date')
-                                if rd:
+                                if rd and not meta_obj['meta'].get('firstAired'):
                                     iso = to_iso_z(rd)
                                     if iso:
-                                        meta_obj['meta']['released'] = iso
                                         meta_obj['meta']['firstAired'] = iso
-                            except Exception:
-                                pass
-                            # Homepage
-                            try:
-                                hp = movie_details.get('homepage')
-                                if hp:
-                                    meta_obj['meta'].setdefault('links', [])
-                                    if not any(l.get('url') == hp for l in meta_obj['meta']['links']):
-                                        meta_obj['meta']['links'].append({'name': 'Homepage', 'url': hp})
                             except Exception:
                                 pass
                             p_path, p_lang = tmdb.pick_best_poster(movie_images)
@@ -403,8 +356,7 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
                                     if l2:
                                         meta_obj['meta']['logo'] = (tmdb.TMDB_BACK_URL + l2)
                             print(f"[META][IMG] {id} chosen poster_lang={p_lang} backdrop_lang={b_lang}")
-                            if movie_details.get('release_date'):
-                                meta_obj['meta']['released'] = to_iso_z(movie_details.get('release_date'))
+                            if movie_details.get('release_date') and not meta_obj['meta'].get('firstAired'):
                                 meta_obj['meta']['firstAired'] = to_iso_z(movie_details.get('release_date'))
                             print(f"[META][TMDB-OFFICIAL] Movie {id}: poster={'ok' if meta_obj['meta'].get('poster') else 'no'} background={'ok' if meta_obj['meta'].get('background') else 'no'}")
                             return meta_obj
@@ -481,27 +433,14 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
                         if tmdb_name:
                             meta['meta']['name'] = tmdb_name
                         tmdb_description = tmdb_meta['meta'].get('description', '')
-                        # Merge in genres / links if available from tmdb_meta and not present
+                        # Merge in genres only
                         try:
                             if tmdb_meta['meta'].get('genres'):
                                 meta['meta']['genres'] = tmdb_meta['meta']['genres']
                         except Exception:
                             pass
-                        try:
-                            if tmdb_meta['meta'].get('links'):
-                                # merge unique links
-                                meta['meta'].setdefault('links', [])
-                                existing_urls = {l.get('url') for l in meta['meta']['links']}
-                                for l in tmdb_meta['meta']['links']:
-                                    if l.get('url') not in existing_urls:
-                                        meta['meta']['links'].append(l)
-                                        existing_urls.add(l.get('url'))
-                        except Exception:
-                            pass
-                        # Ensure released/firstAired not lost if tmdb provided
-                        for date_key in ['released', 'firstAired']:
-                            if tmdb_meta['meta'].get(date_key):
-                                meta['meta'][date_key] = tmdb_meta['meta'][date_key]
+                        if tmdb_meta['meta'].get('firstAired'):
+                            meta['meta']['firstAired'] = tmdb_meta['meta']['firstAired']
                         
                         if tmdb_description == '':
                             _desc = meta['meta'].get('description', '')
@@ -612,10 +551,7 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
                                         'overview': e.get('overview'),
                                         'description': e.get('overview'),
                                         'thumbnail': (tmdb.TMDB_BACK_URL + e['still_path']) if e.get('still_path') else None,
-                                        'firstAired': to_iso_z(e.get('air_date')),
-                                        'released': to_iso_z(e.get('air_date')),
-                                        'rating': e.get('vote_average'),
-                                        'runtime': e.get('runtime') or e.get('episode_run_time')
+                                        'firstAired': to_iso_z(e.get('air_date'))
                                     }
                                     if e.get('air_date') and is_future(e.get('air_date')):
                                         v['releaseInfo'] = 'Prossimamente'
@@ -636,18 +572,7 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
                                 meta_obj['meta']['name'] = series_name
                             if details.get('overview'):
                                 meta_obj['meta']['description'] = details.get('overview')
-                            # Series avg runtime & rating (anime)
-                            try:
-                                runtimes = details.get('episode_run_time') or []
-                                if runtimes:
-                                    meta_obj['meta']['runtime'] = int(sum(runtimes)/len(runtimes))
-                            except Exception:
-                                pass
-                            try:
-                                if details.get('vote_average'):
-                                    meta_obj['meta']['rating'] = details.get('vote_average')
-                            except Exception:
-                                pass
+                            # (removed anime runtime/rating)
                             # Genres
                             try:
                                 g_list = [g.get('name') for g in (details.get('genres') or []) if g.get('name')]
@@ -655,22 +580,11 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
                                     meta_obj['meta']['genres'] = g_list
                             except Exception:
                                 pass
-                            # First air date
+                            # First air date only
                             try:
                                 fad = details.get('first_air_date')
-                                if fad and not meta_obj['meta'].get('released'):
-                                    meta_obj['meta']['released'] = f"{fad}T00:00:00.000Z"
                                 if fad and not meta_obj['meta'].get('firstAired'):
                                     meta_obj['meta']['firstAired'] = f"{fad}T00:00:00.000Z"
-                            except Exception:
-                                pass
-                            # Homepage
-                            try:
-                                hp = details.get('homepage')
-                                if hp:
-                                    meta_obj['meta'].setdefault('links', [])
-                                    if not any(l.get('url') == hp for l in meta_obj['meta']['links']):
-                                        meta_obj['meta']['links'].append({'name': 'Homepage', 'url': hp})
                             except Exception:
                                 pass
                             p_path, p_lang = tmdb.pick_best_poster(images)
@@ -722,17 +636,7 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
                                 meta_obj['meta']['name'] = movie_name
                             if movie_details.get('overview'):
                                 meta_obj['meta']['description'] = movie_details.get('overview')
-                            # Movie runtime & rating (anime movie path)
-                            try:
-                                if movie_details.get('runtime'):
-                                    meta_obj['meta']['runtime'] = movie_details.get('runtime')
-                            except Exception:
-                                pass
-                            try:
-                                if movie_details.get('vote_average'):
-                                    meta_obj['meta']['rating'] = movie_details.get('vote_average')
-                            except Exception:
-                                pass
+                            # (removed anime movie runtime/rating)
                             # Genres
                             try:
                                 g_list = [g.get('name') for g in (movie_details.get('genres') or []) if g.get('name')]
@@ -740,22 +644,13 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
                                     meta_obj['meta']['genres'] = g_list
                             except Exception:
                                 pass
-                            # Release date / homepage
+                            # Release date -> firstAired only
                             try:
                                 rd = movie_details.get('release_date')
-                                if rd:
+                                if rd and not meta_obj['meta'].get('firstAired'):
                                     iso = to_iso_z(rd)
                                     if iso:
-                                        meta_obj['meta']['released'] = iso
                                         meta_obj['meta']['firstAired'] = iso
-                            except Exception:
-                                pass
-                            try:
-                                hp = movie_details.get('homepage')
-                                if hp:
-                                    meta_obj['meta'].setdefault('links', [])
-                                    if not any(l.get('url') == hp for l in meta_obj['meta']['links']):
-                                        meta_obj['meta']['links'].append({'name': 'Homepage', 'url': hp})
                             except Exception:
                                 pass
                             p_path, p_lang = tmdb.pick_best_poster(movie_images)
@@ -783,8 +678,7 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
                                     if l2:
                                         meta_obj['meta']['logo'] = (tmdb.TMDB_BACK_URL + l2)
                             print(f"[META][IMG] {imdb_id} chosen poster_lang={p_lang} backdrop_lang={b_lang}")
-                            if movie_details.get('release_date'):
-                                meta_obj['meta']['released'] = to_iso_z(movie_details.get('release_date'))
+                            if movie_details.get('release_date') and not meta_obj['meta'].get('firstAired'):
                                 meta_obj['meta']['firstAired'] = to_iso_z(movie_details.get('release_date'))
                             print(f"[META][TMDB-OFFICIAL] Anime movie {imdb_id}: poster={'ok' if meta_obj['meta'].get('poster') else 'no'} background={'ok' if meta_obj['meta'].get('background') else 'no'}")
                             meta = meta_obj
@@ -813,6 +707,30 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
                     if not meta or not meta.get('meta'):
                         response = await client.get(f"{kitsu.kitsu_addon_url}/meta/{type}/{id.replace(':','%3A')}.json")
                         meta = response.json()
+                        # Enrichment attempt: genres + firstAired only
+                        try:
+                            imdb_fallback = (meta.get('meta') or {}).get('imdb_id')
+                            if imdb_fallback and imdb_fallback.startswith('tt'):
+                                preferred = 'series' if type == 'series' else 'movie'
+                                tmdb_id_fb = await tmdb.convert_imdb_to_tmdb(imdb_fallback, preferred_type=preferred)
+                                if type == 'series':
+                                    details_fb = await tmdb.get_tv_details(client, tmdb_id_fb, language='it-IT')
+                                else:
+                                    details_fb = await tmdb.get_movie_details(client, tmdb_id_fb, language='it-IT')
+                                # Genres only
+                                g_list = [g.get('name') for g in (details_fb.get('genres') or []) if g.get('name')]
+                                if g_list:
+                                    meta['meta']['genres'] = g_list
+                                if type == 'series':
+                                    fad = details_fb.get('first_air_date')
+                                    if fad:
+                                        meta['meta'].setdefault('firstAired', f"{fad}T00:00:00.000Z")
+                                else:
+                                    rd = details_fb.get('release_date')
+                                    if rd:
+                                        meta['meta'].setdefault('firstAired', f"{rd}T00:00:00.000Z")
+                        except Exception:
+                            pass
 
                     # Anime-specific post-processing
                     if len(meta.get('meta', {})) > 0:
@@ -850,6 +768,29 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
                     # Get meta from kitsu addon if conversion failed
                     response = await client.get(f"{kitsu.kitsu_addon_url}/meta/{type}/{id.replace(':','%3A')}.json")
                     meta = response.json()
+                    # Attempt enrichment same as above (genres + firstAired)
+                    try:
+                        imdb_fallback = (meta.get('meta') or {}).get('imdb_id')
+                        if imdb_fallback and imdb_fallback.startswith('tt'):
+                            preferred = 'series' if type == 'series' else 'movie'
+                            tmdb_id_fb = await tmdb.convert_imdb_to_tmdb(imdb_fallback, preferred_type=preferred)
+                            if type == 'series':
+                                details_fb = await tmdb.get_tv_details(client, tmdb_id_fb, language='it-IT')
+                            else:
+                                details_fb = await tmdb.get_movie_details(client, tmdb_id_fb, language='it-IT')
+                            g_list = [g.get('name') for g in (details_fb.get('genres') or []) if g.get('name')]
+                            if g_list:
+                                meta['meta']['genres'] = g_list
+                            if type == 'series':
+                                fad = details_fb.get('first_air_date')
+                                if fad:
+                                    meta['meta'].setdefault('firstAired', f"{fad}T00:00:00.000Z")
+                            else:
+                                rd = details_fb.get('release_date')
+                                if rd:
+                                    meta['meta'].setdefault('firstAired', f"{rd}T00:00:00.000Z")
+                    except Exception:
+                        pass
 
             # Not compatible id -> redirect to original addon
             else:
