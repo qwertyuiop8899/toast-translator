@@ -22,9 +22,14 @@ with open("languages/lang_tvdb.json", "r", encoding="utf-8") as f:
 
 
 # Cache set
-#token_cache = Cache(maxsize=1, ttl=timedelta(days=29).total_seconds())
-token_cache = Cache('./cache/tvdb/token', timedelta(days=29).total_seconds())
-token_cache.clear()
+token_cache = None
+def open_cache():
+    global token_cache
+    token_cache = Cache('./cache/tvdb/token', timedelta(days=29).total_seconds())
+
+def close_cache():
+    global token_cache
+    token_cache.close()
 
 # Too many requests retry
 async def fetch_and_retry(client: httpx.AsyncClient, url: str, token='', type='GET', params={}, max_retries=10, payload={}) -> dict:

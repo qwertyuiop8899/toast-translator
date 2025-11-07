@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Response, Query
+from fastapi import FastAPI, Request, Response, Query, UploadFile, File
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -12,10 +12,12 @@ import meta_builder
 import translator
 import asyncio
 import httpx
-from api import tmdb
+from api import tmdb, tvdb
 import base64
 import json
 import os
+import zipfile
+import shutil
 
 # Settings
 translator_version = 'v0.1.9'
@@ -36,21 +38,47 @@ with open("languages/languages.json", "r", encoding="utf-8") as f:
 
 # Cache set
 meta_cache = {}
-for language in LANGUAGES:
-    meta_cache[language] = Cache(f"./cache/{language}/meta/tmp",  timedelta(hours=12).total_seconds())
-    #meta_cache[language].clear()
+def open_cache():
+    global meta_cache
+    for language in LANGUAGES:
+        meta_cache[language] = Cache(f"./cache/{language}/meta/tmp",  timedelta(hours=12).total_seconds())
 
+def close_cache():
+    global meta_cache
+    for language in meta_cache:
+        meta_cache[language].close()
+
+# Cache
+def open_all_cache():
+    kitsu.open_cache()
+    mal.open_cache()
+    tmdb.open_cache()
+    tvdb.open_cache()
+    open_cache()
+    translator.open_cache()
+
+def close_all_cache():
+    kitsu.close_cache()
+    mal.close_cache()
+    tmdb.close_cache()
+    tvdb.close_cache()
+    close_cache()
+    translator.close_cache()
 
 # Server start
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print('Started')
+    # Open Cache
+    open_all_cache()
     # Load anime mapping lists
     await anime_mapping.download_maps()
     kitsu.load_anime_map()
     mal.load_anime_map()
     yield
     print('Shutdown')
+    # Cache close
+    close_all_cache()
     
 
 app = FastAPI(lifespan=lifespan)
@@ -172,6 +200,7 @@ async def get_catalog(response: Response, addon_url, type: str, user_settings: s
     rpdb_key = user_settings.get('rpdb_key', 't0-free-rpdb')
     toast_ratings = user_settings.get('tr', '0')
     top_stream_poster = user_settings.get('tsp', '0')
+    top_stream_key = user_settings.get('topkey', '')
 
     # Convert addon base64 url
     addon_url = decode_base64_url(addon_url)
@@ -213,7 +242,7 @@ async def get_catalog(response: Response, addon_url, type: str, user_settings: s
         else:
             return json_response({})
 
-    new_catalog = translator.translate_catalog(catalog, tmdb_details, top_stream_poster, toast_ratings, rpdb, rpdb_key, language)
+    new_catalog = translator.translate_catalog(catalog, tmdb_details, top_stream_poster, toast_ratings, rpdb, rpdb_key, top_stream_key, language)
     return json_response(new_catalog)
 
 
@@ -425,6 +454,25 @@ async def get_subs(addon_url, path: str):
     return RedirectResponse(f"{addon_url}/stream/{path}")
 
 
+### DASHBOARD ###
+
+@app.get('/dashboard', response_class=HTMLResponse)
+async def dashboard(request: Request):
+    response = templates.TemplateResponse("dashboard.html", {"request": request})
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    response.headers["Surrogate-Control"] = "no-store"
+    return response
+
+# Dashboard password check
+@app.get("/check_auth")
+def check_auth(password: str = Query(...)):
+    if password == ADMIN_PASSWORD:
+        return json_response({"status": "OK"})
+    else:
+        return Response(status_code=401)
+
 # Anime map reloader
 @app.get('/map_reload')
 async def reload_anime_mapping(password: str = Query(...)):
@@ -454,12 +502,74 @@ async def clean_cache(password: str = Query(...)):
     else:
         return json_response({"Error": "Access delined"})
     
+# Cache download
+@app.get("/download_cache")
+def download_cache(password: str = Query(...)):
+    CACHE_DIR = './cache'
+    ZIP_PATH = './cache.zip'
+    if password == ADMIN_PASSWORD:
+        if not os.path.exists(CACHE_DIR):
+            return Response(status_code=404)
+
+        # Se esiste già, la cancella
+        if os.path.exists(ZIP_PATH):
+            os.remove(ZIP_PATH)
+
+        # Crea zip
+        with zipfile.ZipFile(ZIP_PATH, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for root, _, files in os.walk(CACHE_DIR):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    zipf.write(file_path, os.path.relpath(file_path, CACHE_DIR))
+
+        return FileResponse(ZIP_PATH, filename="cache.zip", media_type="application/zip")
+    else:
+        Response(status_code=401)
+
+# Cache upload
+@app.post("/upload_cache")
+async def upload_cache(password: str = Query(...), file: UploadFile = File(...)):
+    
+    CACHE_DIR = "./cache"
+    TMP_UPLOAD = "./uploaded_cache.zip"
+
+    if password == ADMIN_PASSWORD:
+        # 1️⃣ Chiudi cache corrente
+        close_all_cache()
+
+        # 2️⃣ Salva zip temporaneo
+        with open(TMP_UPLOAD, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        # 3️⃣ Cancella vecchia cache e sostituisci con quella nuova
+        if os.path.exists(CACHE_DIR):
+            shutil.rmtree(CACHE_DIR)
+
+        os.makedirs(CACHE_DIR, exist_ok=True)
+
+        try:
+            with zipfile.ZipFile(TMP_UPLOAD, "r") as zip_ref:
+                zip_ref.extractall(CACHE_DIR)
+        except zipfile.BadZipFile:
+            os.remove(TMP_UPLOAD)
+            return Response(status_code=400)
+
+        os.remove(TMP_UPLOAD)
+
+        # 4️⃣ Riapri la cache
+        open_all_cache()
+
+        return {"status": "cache replaced"}
+    else:
+        return Response(status_code=401)
+
+###############  
     
 # Toast Translator Logo
 @app.get('/favicon.ico')
 @app.get('/addon-logo.png')
 async def get_poster_placeholder():
-    return FileResponse("statics/img/toast-translator-logo.png", media_type="image/png")
+    return FileResponse("static/img/toast-translator-logo.png", media_type="image/png")
 
 # Languages
 @app.get('/languages.json')

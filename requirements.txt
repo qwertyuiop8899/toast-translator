@@ -6,3 +6,4 @@ diskcache
 cachetools
 slowapi
 gunicorn
+python-multipart

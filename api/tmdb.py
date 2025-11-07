@@ -21,9 +21,15 @@ with open("languages/languages.json", "r", encoding="utf-8") as f:
 
 # Cache set
 tmp_cache = {}
-for language in LANGUAGES:
-    tmp_cache[language] = Cache(f"./cache/{language}/tmdb/tmp", timedelta(days=7).total_seconds())
-    #tmp_cache[language].clear()
+def open_cache():
+    global tmp_cache
+    for language in LANGUAGES:
+        tmp_cache[language] = Cache(f"./cache/{language}/tmdb/tmp", timedelta(days=7).total_seconds())
+
+def close_cache():
+    global tmp_cache
+    for language in tmp_cache:
+        tmp_cache[language].close()
 
 
 # Too many requests retry

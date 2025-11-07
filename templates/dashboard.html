@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toast Translator Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #fafafa;
+            color: #333;
+        }
+        .container {
+            max-width: 500px;
+            margin: 5rem auto;
+            text-align: center;
+            padding: 2rem;
+            border-radius: 1rem;
+            background-color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .title span.toast {
+            font-weight: bold;
+            font-size: 1.8rem;
+        }
+        .title span.translator {
+            font-weight: 300;
+            margin-left: 0.5rem;
+            color: #666;
+        }
+        .buttons button {
+            margin: 0.5rem;
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            transition: 0.2s;
+        }
+        .buttons button:hover {
+            background: #0056b3;
+        }
+        #login {
+            display: none;
+        }
+        input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="login">
+        <h2>🔐 Accesso alla Dashboard</h2>
+        <input type="password" id="password" placeholder="Inserisci la password">
+        <button id="loginBtn">Accedi</button>
+        <div id="loginStatus"></div>
+    </div>
+
+    <div class="container" id="dashboard" style="display:none;">
+        <div class="title">
+            <span class="toast">Toast</span>
+            <span class="translator">Dashboard</span>
+        </div>
+
+        <div class="buttons">
+            <button id="clearCache">🧹 Pulisci Cache</button>
+            <button id="reloadIDs">🔄 Ricarica ID Anime</button>
+            <button id="downloadCache">📦 Scarica Cache (.zip)</button>
+            <button id="uploadBtn">📤 Carica Cache (.zip)</button>
+            <button id="logout">🚪 Logout</button>
+        </div>
+
+        <input type="file" id="fileInput" accept=".zip">
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const loginDiv = document.getElementById("login");
+        const dashboardDiv = document.getElementById("dashboard");
+        const passwordInput = document.getElementById("password");
+        const loginStatus = document.getElementById("loginStatus");
+        const statusBox = document.getElementById("status");
+
+        const savedPassword = localStorage.getItem("apiPassword");
+
+        if (savedPassword) {
+            showDashboard();
+        } else {
+            loginDiv.style.display = "block";
+        }
+
+        document.getElementById("loginBtn").addEventListener("click", async () => {
+            const password = passwordInput.value.trim();
+            if (!password) return;
+
+            try {
+                const res = await fetch(`/check_auth?password=${encodeURIComponent(password)}`);
+                if (res.ok) {
+                    localStorage.setItem("apiPassword", password);
+                    showDashboard();
+                } else {
+                    loginStatus.textContent = "❌ Password errata";
+                    loginStatus.style.color = "red";
+                }
+            } catch {
+                loginStatus.textContent = "Errore di connessione";
+                loginStatus.style.color = "red";
+            }
+        });
+
+        document.getElementById("logout").addEventListener("click", () => {
+            localStorage.removeItem("apiPassword");
+            location.reload();
+        });
+
+        function showDashboard() {
+            loginDiv.style.display = "none";
+            dashboardDiv.style.display = "block";
+        }
+
+        function getPassword() {
+            return localStorage.getItem("apiPassword");
+        }
+
+        function setStatus(msg, ok = true) {
+            statusBox.textContent = msg;
+            statusBox.style.color = ok ? "green" : "red";
+        }
+
+        // --- Azioni principali ---
+        document.getElementById("clearCache").addEventListener("click", async () => {
+            try {
+                const res = await fetch(`/clean_cache?password=${encodeURIComponent(getPassword())}`);
+                if (res.ok) setStatus("Cache pulita con successo ✅");
+                else setStatus("Errore nella pulizia cache ❌", false);
+            } catch {
+                setStatus("Errore di connessione ❌", false);
+            }
+        });
+
+        document.getElementById("reloadIDs").addEventListener("click", async () => {
+            try {
+                const res = await fetch(`/map_reload?password=${encodeURIComponent(getPassword())}`);
+                if (res.ok) setStatus("ID anime ricaricati ✅");
+                else setStatus("Errore nel ricaricare gli ID ❌", false);
+            } catch {
+                setStatus("Errore di connessione ❌", false);
+            }
+        });
+
+        document.getElementById("downloadCache").addEventListener("click", async () => {
+            try {
+                const res = await fetch(`/download_cache?password=${encodeURIComponent(getPassword())}`);
+                if (!res.ok) throw new Error("Errore nel download");
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "cache.zip";
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch {
+                setStatus("Errore nel download ❌", false);
+            }
+        });
+
+        // --- Upload della cache ---
+        const fileInput = document.getElementById("fileInput");
+        document.getElementById("uploadBtn").addEventListener("click", () => fileInput.click());
+
+        fileInput.addEventListener("change", async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            setStatus("Caricamento in corso... ⏳", true);
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const res = await fetch(`/upload_cache?password=${encodeURIComponent(getPassword())}`, {
+                    method: "POST",
+                    body: formData,
+                });
+                if (res.ok) {
+                    setStatus("Cache caricata con successo ✅");
+                } else {
+                    setStatus("Errore nel caricamento ❌", false);
+                }
+            } catch {
+                setStatus("Errore di connessione ❌", false);
+            }
+        });
+    </script>
+</body>
+</html>

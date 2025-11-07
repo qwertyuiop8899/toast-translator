@@ -86,10 +86,17 @@ function generateTranslatorLink(addonUrl, rpdb, toast_ratings, tsPoster) {
     const tmdbApiKey = document.getElementById("tmdb-key").value;
     const language = document.getElementById("language").value;
     let rpdbKey = document.getElementById("rpdb-key").value;
+    const topPosterKey = document.getElementById("top-key").value;
     if (!rpdbKey) {
         rpdbKey = "t0-free-rpdb";
     }
-    const userSettings = `rpdb=${rpdb},tr=${toast_ratings},tsp=${tsPoster},language=${language},tmdb_key=${tmdbApiKey},rpdb_key=${rpdbKey}`;
+    let userSettings = `rpdb=${rpdb},tr=${toast_ratings},tsp=${tsPoster},language=${language},tmdb_key=${tmdbApiKey}`;
+    if (rpdb) {
+        userSettings += `,rpdb_key=${rpdbKey}`
+    }
+    else if (tsPoster) {
+        userSettings += `,topkey=${topPosterKey}`
+    }
     
     if (addonUrl.includes(serverUrl)) {
         const addonBase64String = addonUrl.split("/")[3];

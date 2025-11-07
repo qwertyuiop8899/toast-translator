@@ -6,8 +6,15 @@ import anime.anime_mapping as anime_mapping
 kitsu_addon_url = 'https://anime-kitsu.strem.fun'
 
 # Cache load
-kitsu_cache_ids = Cache('./cache/kitsu/ids', timedelta(days=30).total_seconds())
-#kitsu_cache_ids.clear()
+kitsu_cache_ids = None
+def open_cache():
+	global kitsu_cache_ids
+	kitsu_cache_ids = Cache('./cache/kitsu/ids', timedelta(days=30).total_seconds())
+
+def close_cache():
+	global kitsu_cache_ids
+	kitsu_cache_ids.close()
+	
 
 # Anime mapping loading
 imdb_ids_map = None

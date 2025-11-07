@@ -6,11 +6,6 @@ import httpx
 import json
 import os
 
-# Cache set
-#translations_cache = Cache(maxsize=float('inf'), ttl=float('inf'))
-translations_cache = Cache('./cache/translation/tmp')
-translations_cache.clear()
-
 # Load languages
 with open("languages/languages.json", "r", encoding="utf-8") as f:
     LANGUAGES = json.load(f) 
@@ -21,13 +16,20 @@ with open("languages/lang_episode.json", "r", encoding="utf-8") as f:
 
 # Cache set
 translations_cache = {}
-for language in LANGUAGES:
-    translations_cache[language] = Cache(f"./cache/{language}/translation/tmp")
-    #translations_cache[language].clear()
+def open_cache():
+    global translations_cache
+    for language in LANGUAGES:
+        translations_cache[language] = Cache(f"./cache/{language}/translation/tmp")
+
+def close_cache():
+    global translations_cache
+    for language in translations_cache:
+        translations_cache[language].close()
+
 
 # Poster ratings
 RATINGS_SERVER = os.getenv('TR_SERVER', 'https://ca6771aaa821-toast-ratings.baby-beamup.club')
-TSP_API_KEY = os.getenv('TSP_API_KEY')
+
 
 
 async def translate_with_api(client: httpx.AsyncClient, text: str, language: str, source='en') -> str:
@@ -62,7 +64,7 @@ async def translate_episodes_with_api(client: httpx.AsyncClient, episodes: list[
     return episodes
 
 
-def translate_catalog(original: dict, tmdb_meta: dict, top_stream_poster, toast_ratings, rpdb, rpdb_key, language: str) -> dict:
+def translate_catalog(original: dict, tmdb_meta: dict, top_stream_poster, toast_ratings, rpdb, rpdb_key, top_stream_key, language: str) -> dict:
     new_catalog = original
 
     for i, item in enumerate(new_catalog['metas']):
@@ -85,7 +87,7 @@ def translate_catalog(original: dict, tmdb_meta: dict, top_stream_poster, toast_
                             item['poster'] = f"https://api.ratingposterdb.com/{rpdb_key}/imdb/poster-default/{tmdb_meta[i]['imdb_id']}.jpg?lang={language.split('-')[0]}"
                 elif top_stream_poster == '1':
                     if 'tt' in tmdb_meta[i].get('imdb_id', ''):
-                        item['poster'] = f"https://api.top-streaming.stream/{TSP_API_KEY}/imdb/poster-default/{tmdb_meta[i]['imdb_id']}.jpg?lang={language}"
+                        item['poster'] = f"https://api.top-streaming.stream/{top_stream_key}/imdb/poster-default/{tmdb_meta[i]['imdb_id']}.jpg?lang={language}"
 
             else:
                 try: item['name'] = detail['title'] if type == 'movie' else detail['name']
@@ -106,7 +108,7 @@ def translate_catalog(original: dict, tmdb_meta: dict, top_stream_poster, toast_
                         else:
                             item['poster'] = f"https://api.ratingposterdb.com/{rpdb_key}/imdb/poster-default/{tmdb_meta[i]['imdb_id']}.jpg?lang={language.split('-')[0]}"
                     elif top_stream_poster == '1':
-                        item['poster'] = f"https://api.top-streaming.stream/{TSP_API_KEY}/imdb/poster-default/{tmdb_meta[i]['imdb_id']}.jpg?lang={language}"
+                        item['poster'] = f"https://api.top-streaming.stream/{top_stream_key}/imdb/poster-default/{tmdb_meta[i]['imdb_id']}.jpg?lang={language}"
                     else:
                         item['poster'] = tmdb.TMDB_POSTER_URL + detail['poster_path']
                 except Exception as e: 
