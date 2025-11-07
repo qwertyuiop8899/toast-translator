@@ -1,1 +1,1 @@
-web: gunicorn main:app -k uvicorn.workers.UvicornWorker --workers 1 --preload --threads 2 --timeout 600 --bind 0.0.0.0:$PORT --limit-max-request-size 2147483648
+web: uvicorn main:app --host 0.0.0.0 --port $PORT --timeout-keep-alive 600 --limit-max-request-size 2147483648
