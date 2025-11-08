@@ -97,6 +97,15 @@ stremio_headers = {
     'accept-encoding': 'gzip, deflate, br'
 }
 
+cloudflare_cache_headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': '*',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'Surrogate-Control': 'no-store'
+}
+
 tmdb_addons_pool = [
     'https://tmdb.elfhosted.com/%7B%22provide_imdbId%22%3A%22true%22%2C%22language%22%3A%22it-IT%22%7D', # Elfhosted
     'https://94c8cb9f702d-tmdb-addon.baby-beamup.club/%7B%22provide_imdbId%22%3A%22true%22%2C%22language%22%3A%22it-IT%22%7D', # Official
@@ -106,25 +115,11 @@ tmdb_addons_pool = [
 tmdb_addon_meta_url = tmdb_addons_pool[0]
 cinemeta_url = 'https://v3-cinemeta.strem.io'
 
-def json_response(data):
-    response = JSONResponse(data)
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Headers'] = '*'
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    response.headers["Surrogate-Control"] = "no-store"
-    return response
-
 
 @app.get('/', response_class=HTMLResponse)
 @app.get('/configure', response_class=HTMLResponse)
 async def home(request: Request):
-    response = templates.TemplateResponse("configure.html", {"request": request})
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    response.headers["Surrogate-Control"] = "no-store"
+    response = templates.TemplateResponse("configure.html", {"request": request}, headers=cloudflare_cache_headers)
     return response
 
 @app.get('/{addon_url}/{user_settings}/configure')
@@ -134,11 +129,7 @@ async def configure(addon_url):
 
 @app.get('/link_generator', response_class=HTMLResponse)
 async def link_generator(request: Request):
-    response = templates.TemplateResponse("link_generator.html", {"request": request})
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    response.headers["Surrogate-Control"] = "no-store"
+    response = templates.TemplateResponse("link_generator.html", {"request": request}, headers=cloudflare_cache_headers)
     return response
 
 
@@ -146,7 +137,7 @@ async def link_generator(request: Request):
 async def get_manifest():
     with open("manifest.json", "r", encoding="utf-8") as f:
         manifest = json.load(f)
-    return json_response(manifest)
+    return JSONResponse(content=manifest, headers=cloudflare_cache_headers)
 
 
 @app.get('/{addon_url}/{user_settings}/manifest.json')
@@ -187,7 +178,7 @@ async def get_manifest(addon_url, user_settings):
         if 'meta' not in manifest['resources']:
             manifest['resources'].append('meta')
 
-    return json_response(manifest)
+    return JSONResponse(content=manifest, headers=cloudflare_cache_headers)
 
 
 @app.get("/{addon_url}/{user_settings}/catalog/{type}/{path:path}")
@@ -210,13 +201,13 @@ async def get_catalog(response: Response, addon_url, type: str, user_settings: s
 
         # Cinemeta last-videos and calendar
         if 'last-videos' in path or 'calendar-videos' in path:
-            return json_response(response.json())
+            return JSONResponse(content=response.json(), headers=cloudflare_cache_headers)
         
         try:
             catalog = response.json()
         except:
             print(f"Error on load catalog: {response.status_code}")
-            return json_response({})
+            return JSONResponse(content={}, headers=cloudflare_cache_headers)
         
         if type == 'anime':
             await remove_duplicates(catalog)
@@ -240,10 +231,10 @@ async def get_catalog(response: Response, addon_url, type: str, user_settings: s
 
             tmdb_details = await asyncio.gather(*tasks)
         else:
-            return json_response({})
+            return JSONResponse(content={}, headers=cloudflare_cache_headers)
 
     new_catalog = translator.translate_catalog(catalog, tmdb_details, top_stream_poster, toast_ratings, rpdb, rpdb_key, top_stream_key, language)
-    return json_response(new_catalog)
+    return JSONResponse(content=new_catalog, headers=cloudflare_cache_headers)
 
 
 @app.get('/{addon_url}/{user_settings}/meta/{type}/{id}.json')
@@ -265,7 +256,7 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
 
         # Return cached meta
         if meta != None:
-            return json_response(meta)
+            return JSONResponse(content=meta, headers=cloudflare_cache_headers)
 
         # Not in cache
         else:
@@ -305,7 +296,7 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
                 if len(tmdb_meta.get('meta', [])) > 0:
                     # Invalid TMDB key error
                     if 'error' in tmdb_meta['meta']['id']:
-                        return json_response(tmdb_meta)
+                        return JSONResponse(content=tmdb_meta, headers=cloudflare_cache_headers)
                     
                     # Not merge anime
                     if id not in kitsu.imdb_ids_map:
@@ -349,7 +340,7 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
                     
                     # Empty cinemeta and tmdb return empty meta
                     else:
-                        return json_response({})
+                        return JSONResponse(content={}, headers=cloudflare_cache_headers)
                     
                 
             # Handle kitsu and mal ids
@@ -425,12 +416,12 @@ async def get_meta(request: Request,response: Response, addon_url, user_settings
             # Not compatible id
             else:
                 response = await client.get(f"{addon_url}/meta/{type}/{id}.json")
-                return json_response(response.json())
+                return JSONResponse(content=response.json(), headers=cloudflare_cache_headers)
 
 
             meta['meta']['id'] = id
             meta_cache[language].set(id, meta)
-            return json_response(meta)
+            return JSONResponse(content=meta, headers=cloudflare_cache_headers)
 
 
 # Addon catalog reponse
@@ -439,7 +430,7 @@ async def get_addon_catalog(addon_url, path: str):
     addon_url = decode_base64_url(addon_url)
     async with httpx.AsyncClient(follow_redirects=True, timeout=REQUEST_TIMEOUT) as client:
         response = await client.get(f"{addon_url}/addon_catalog/{path}")
-        return json_response(response.json())
+        return JSONResponse(content=response.json(), headers=cloudflare_cache_headers)
 
 # Subs redirect
 @app.get('/{addon_url}/{user_settings}/subtitles/{path:path}')
@@ -458,18 +449,14 @@ async def get_subs(addon_url, path: str):
 
 @app.get('/dashboard', response_class=HTMLResponse)
 async def dashboard(request: Request):
-    response = templates.TemplateResponse("dashboard.html", {"request": request})
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    response.headers["Surrogate-Control"] = "no-store"
+    response = templates.TemplateResponse("dashboard.html", {"request": request}, headers=cloudflare_cache_headers)
     return response
 
 # Dashboard password check
 @app.get("/check_auth")
 def check_auth(password: str = Query(...)):
     if password == ADMIN_PASSWORD:
-        return json_response({"status": "OK"})
+        return JSONResponse(content={"status": "OK"}, headers=cloudflare_cache_headers)
     else:
         return Response(status_code=401)
 
@@ -480,9 +467,9 @@ async def reload_anime_mapping(password: str = Query(...)):
         await anime_mapping.download_maps()
         kitsu.load_anime_map()
         mal.load_anime_map()
-        return json_response({"status": "Anime map updated."})
+        return JSONResponse(content={"status": "Anime map updated."}, headers=cloudflare_cache_headers)
     else:
-        return json_response({"Error": "Access delined"})
+        return JSONResponse(content={"Error": "Access delined"}, headers=cloudflare_cache_headers)
     
 
 # Cache expires
@@ -498,9 +485,9 @@ async def clean_cache(password: str = Query(...)):
         for cache in meta_cache.values():
             cache.expire()
 
-        return json_response({"status": "Cache cleaned."})
+        return JSONResponse(content={"status": "Cache cleaned."}, headers=cloudflare_cache_headers)
     else:
-        return json_response({"Error": "Access delined"})
+        return JSONResponse(content={"Error": "Access delined"}, headers=cloudflare_cache_headers)
     
 # Cache download
 @app.get("/download_cache")
@@ -522,7 +509,7 @@ def download_cache(password: str = Query(...)):
                     file_path = os.path.join(root, file)
                     zipf.write(file_path, os.path.relpath(file_path, CACHE_DIR))
 
-        return FileResponse(ZIP_PATH, filename="cache.zip", media_type="application/zip")
+        return FileResponse(ZIP_PATH, filename="cache.zip", media_type="application/zip", headers=cloudflare_cache_headers)
     else:
         Response(status_code=401)
 
@@ -591,7 +578,7 @@ async def get_poster_placeholder():
 @app.get('/languages.json')
 async def get_languages():
     with open("languages/languages.json", "r", encoding="utf-8") as f:
-        return json_response(json.load(f))
+        return JSONResponse(content=json.load(f), headers=cloudflare_cache_headers)
 
 
 def decode_base64_url(encoded_url):
