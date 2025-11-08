@@ -528,40 +528,56 @@ def download_cache(password: str = Query(...)):
 
 # Cache upload
 @app.post("/upload_cache")
-async def upload_cache(password: str = Query(...), file: UploadFile = File(...)):
-    
+async def upload_cache(password: str = Query(...), file_url: str = Query(...)):
+
     CACHE_DIR = "./cache"
     TMP_UPLOAD = "./uploaded_cache.zip"
 
-    if password == ADMIN_PASSWORD:
-        # 1️⃣ Chiudi cache corrente
+    if password != ADMIN_PASSWORD:
+        return Response(status_code=401)
+
+    try:
+        # 1️⃣ Chiudi la cache corrente
         close_all_cache()
 
-        # 2️⃣ Salva zip temporaneo
-        with open(TMP_UPLOAD, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        # 2️⃣ Scarica lo ZIP dal server esterno
+        async with httpx.AsyncClient(timeout=1200) as client:
+            async with client.stream("GET", file_url) as r:
+                r.raise_for_status()
+                with open(TMP_UPLOAD, "wb") as buffer:
+                    async for chunk in r.aiter_bytes():
+                        buffer.write(chunk)
 
-        # 3️⃣ Cancella vecchia cache e sostituisci con quella nuova
+        # 3️⃣ Cancella la cache esistente
         if os.path.exists(CACHE_DIR):
             shutil.rmtree(CACHE_DIR)
-
         os.makedirs(CACHE_DIR, exist_ok=True)
 
+        # 4️⃣ Estrai il nuovo file ZIP
         try:
             with zipfile.ZipFile(TMP_UPLOAD, "r") as zip_ref:
                 zip_ref.extractall(CACHE_DIR)
         except zipfile.BadZipFile:
             os.remove(TMP_UPLOAD)
-            return Response(status_code=400)
+            return Response(content="Invalid ZIP file", status_code=400)
 
+        # 5️⃣ Pulisci file temporaneo
         os.remove(TMP_UPLOAD)
 
-        # 4️⃣ Riapri la cache
+        # 6️⃣ Riapri la cache
         open_all_cache()
 
-        return {"status": "cache replaced"}
-    else:
-        return Response(status_code=401)
+        return {"status": "cache replaced ✅"}
+
+    except httpx.HTTPError as e:
+        if os.path.exists(TMP_UPLOAD):
+            os.remove(TMP_UPLOAD)
+        return Response(content=f"Error downloading file: {str(e)}", status_code=500)
+
+    except Exception as e:
+        if os.path.exists(TMP_UPLOAD):
+            os.remove(TMP_UPLOAD)
+        return Response(content=f"Unexpected error: {str(e)}", status_code=500)
 
 ###############  
     

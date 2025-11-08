@@ -77,6 +77,9 @@
     </div>
 
     <script>
+        // 🔗 URL del tuo server uploader esterno
+        const UPLOADER_URL = "https://toasttrans-tmp.hf.space/upload"; // <--- cambia questo
+
         const loginDiv = document.getElementById("login");
         const dashboardDiv = document.getElementById("dashboard");
         const passwordInput = document.getElementById("password");
@@ -174,23 +177,38 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            setStatus("Caricamento in corso... ⏳", true);
+            setStatus("Caricamento su server esterno... ⏳", true);
 
             const formData = new FormData();
             formData.append("file", file);
 
             try {
-                const res = await fetch(`/upload_cache?password=${encodeURIComponent(getPassword())}`, {
+                // 1️⃣ Carica sul server esterno
+                const uploadRes = await fetch(UPLOADER_URL, {
                     method: "POST",
                     body: formData,
                 });
+
+                if (!uploadRes.ok) throw new Error("Errore upload su server esterno");
+
+                const data = await uploadRes.json();
+                const fileUrl = data.url; // Il server uploader deve restituire { "url": "<link pubblico>" }
+
+                setStatus("Upload completato, aggiornamento cache... ⏳", true);
+
+                // 2️⃣ Invia URL al backend principale
+                const res = await fetch(`/upload_cache?password=${encodeURIComponent(getPassword())}&file_url=${encodeURIComponent(fileUrl)}`, {
+                    method: "POST",
+                });
+
                 if (res.ok) {
-                    setStatus("Cache caricata con successo ✅");
+                    setStatus("Cache sostituita con successo ✅");
                 } else {
-                    setStatus("Errore nel caricamento ❌", false);
+                    setStatus("Errore durante la sostituzione della cache ❌", false);
                 }
-            } catch {
-                setStatus("Errore di connessione ❌", false);
+            } catch (err) {
+                console.error(err);
+                setStatus("Errore nel caricamento ❌", false);
             }
         });
     </script>
