@@ -26,6 +26,12 @@ def close_cache():
     for language in translations_cache:
         translations_cache[language].close()
 
+def get_cache_lenght():
+    global translations_cache
+    total_len = 0
+    for language in LANGUAGES:
+        total_len += translations_cache[language].get_len()
+    return total_len
 
 # Poster ratings
 RATINGS_SERVER = os.getenv('TR_SERVER', 'https://ca6771aaa821-toast-ratings.baby-beamup.club')

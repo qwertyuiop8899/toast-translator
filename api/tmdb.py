@@ -31,6 +31,13 @@ def close_cache():
     for language in tmp_cache:
         tmp_cache[language].close()
 
+def get_cache_lenght():
+    global tmp_cache
+    total_len = 0
+    for language in LANGUAGES:
+        total_len += tmp_cache[language].get_len()
+    return total_len
+
 
 # Too many requests retry
 async def fetch_and_retry(client: httpx.AsyncClient, id: str, url: str, language: str, params={}, max_retries=10) -> dict:

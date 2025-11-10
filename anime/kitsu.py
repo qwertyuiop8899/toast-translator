@@ -14,6 +14,11 @@ def open_cache():
 def close_cache():
 	global kitsu_cache_ids
 	kitsu_cache_ids.close()
+
+def get_cache_lenght():
+	global kitsu_cache_ids
+	return kitsu_cache_ids.get_len()
+
 	
 
 # Anime mapping loading

@@ -13,6 +13,9 @@ class Cache():
     def get(self, key, default=None):
         return self.cache.get(key, default)
     
+    def get_len(self):
+        return len(self)
+    
     def clear(self):
         return self.cache.clear()
 
@@ -21,6 +24,9 @@ class Cache():
     
     def close(self):
         return self.cache.close()
+    
+    def __len__(self):
+        return len(self.cache)
     
     def __enter__(self):
         return self

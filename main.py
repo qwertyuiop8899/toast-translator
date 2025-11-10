@@ -30,6 +30,8 @@ REQUEST_TIMEOUT = 120
 COMPATIBILITY_ID = ['tt', 'kitsu', 'mal']
 
 # ENV file
+#from dotenv import load_dotenv
+#load_dotenv()
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
 
 # Load languages
@@ -47,6 +49,13 @@ def close_cache():
     global meta_cache
     for language in meta_cache:
         meta_cache[language].close()
+
+def get_cache_lenght():
+    global meta_cache
+    total_len = 0
+    for language in LANGUAGES:
+        total_len += meta_cache[language].get_len()
+    return total_len
 
 # Cache
 def open_all_cache():
@@ -469,8 +478,38 @@ async def reload_anime_mapping(password: str = Query(...)):
         mal.load_anime_map()
         return JSONResponse(content={"status": "Anime map updated."}, headers=cloudflare_cache_headers)
     else:
-        return JSONResponse(content={"Error": "Access delined"}, headers=cloudflare_cache_headers)
+        return JSONResponse(status_code=401, content={"Error": "Access delined"}, headers=cloudflare_cache_headers)
     
+# Get Cache total elements
+@app.get('/get_cache_dimension')
+async def reload_anime_mapping(password: str = Query(...)):
+    if password == ADMIN_PASSWORD:
+        kitsu_ids = kitsu.get_cache_lenght()
+        mal_ids = mal.get_cache_lenght()
+        tmdb_elements = tmdb.get_cache_lenght()
+        translator_elements = translator.get_cache_lenght()
+        meta_elements = get_cache_lenght()
+        response = {
+            "kitsu": kitsu_ids,
+            "mal": mal_ids,
+            "tmdb": tmdb_elements,
+            "translator": translator_elements,
+            "meta": meta_elements,
+            "total": kitsu_ids + mal_ids + tmdb_elements + translator_elements + meta_elements
+        }
+        return JSONResponse(content=response, headers=cloudflare_cache_headers)
+    else:
+        return JSONResponse(status_code=401, content={"Error": "Access delined"}, headers=cloudflare_cache_headers)
+    
+# Cache reopen
+@app.get('/cache_reopen')
+async def reload_anime_mapping(password: str = Query(...)):
+    if password == ADMIN_PASSWORD:
+        close_all_cache()
+        open_all_cache()
+        return JSONResponse(content={"status": "Cache Reopen."}, headers=cloudflare_cache_headers)
+    else:
+        return JSONResponse(status_code=401, content={"Error": "Access delined"}, headers=cloudflare_cache_headers)
 
 # Cache expires
 @app.get('/clean_cache')
@@ -487,7 +526,7 @@ async def clean_cache(password: str = Query(...)):
 
         return JSONResponse(content={"status": "Cache cleaned."}, headers=cloudflare_cache_headers)
     else:
-        return JSONResponse(content={"Error": "Access delined"}, headers=cloudflare_cache_headers)
+        return JSONResponse(status_code=401, content={"Error": "Access delined"}, headers=cloudflare_cache_headers)
     
 # Cache download
 @app.get("/download_cache")
@@ -495,6 +534,7 @@ def download_cache(password: str = Query(...)):
     CACHE_DIR = './cache'
     ZIP_PATH = './cache.zip'
     if password == ADMIN_PASSWORD:
+        print("ciao")
         if not os.path.exists(CACHE_DIR):
             return Response(status_code=404)
 

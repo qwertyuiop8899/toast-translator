@@ -15,6 +15,10 @@ def close_cache():
 	global mal_cache_ids
 	mal_cache_ids.close()
 
+def get_cache_lenght():
+	global mal_cache_ids
+	return mal_cache_ids.get_len()
+
 # Anime mapping loading
 imdb_ids_map = None
 imdb_map = None
