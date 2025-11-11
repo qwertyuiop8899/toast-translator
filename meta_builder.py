@@ -111,7 +111,7 @@ async def build_metadata(imdb_id: str, type: str, language: str, tmdb_key: str):
                 "poster": tmdb.TMDB_POSTER_URL + poster_path if poster_path else None,
                 "background": tmdb.TMDB_BACK_URL + backdrop_path if backdrop_path else None,
                 "logo": logo,
-                "runtime": str(tmdb_data.get('runtime','')) + ' min' if type == 'movie' else extract_series_episode_runtime(tmdb_data, cinemeta_data),
+                "runtime": convert_minutes_hours(tmdb_data.get('runtime','')) if type == 'movie' else convert_minutes_hours(extract_series_episode_runtime(tmdb_data, cinemeta_data)),
                 "id": 'tmdb:' + str(tmdb_data.get('id', '')),
                 "genres": genres,
                 "releaseInfo": year,
@@ -205,6 +205,21 @@ async def series_build_episodes(client: httpx.AsyncClient, imdb_id: str, tmdb_id
 
     return videos
 
+
+def convert_minutes_hours(value):
+    total_minutes = int(str(value).replace("min", "").strip())
+    
+    if total_minutes < 60:
+        return f"{total_minutes}min"
+    
+    hours = total_minutes // 60
+    minutes = total_minutes % 60
+    
+    if minutes > 0:
+        return f"{hours}h{minutes}min"
+    else:
+        return f"{hours}h"
+    
 
 def extract_series_episode_runtime(tmdb_data: dict, cinemeta_data: dict) -> str:
     runtime = 0
