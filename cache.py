@@ -4,7 +4,7 @@ from diskcache import Cache as diskCache
 class Cache():
 
     def __init__(self, dir: str, expires: int = None):
-        self.cache = diskCache(dir)
+        self.cache = diskCache(dir, sqlite_cache_size=50000, disk_min_file_size=0, eviction_policy='least-recently-stored')
         self.expires = expires
 
     def set(self, key, value):
