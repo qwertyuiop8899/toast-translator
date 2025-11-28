@@ -13,9 +13,12 @@ async def get_fanart_movie(client: httpx.AsyncClient, id: str) -> dict:
     }
 
     url = f"http://webservice.fanart.tv/v3/movies/{id}"
-    reponse = await client.get(url, params=params)
+    response = await client.get(url, params=params)
 
-    return reponse.json()
+    if response.status_code == 200:
+        return response.json()
+    else:
+            return {"error": response.status_code}
 
 
 async def get_fanart_series(client: httpx.AsyncClient, id: str) -> dict:
