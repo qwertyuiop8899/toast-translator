@@ -3,7 +3,7 @@ from datetime import timedelta
 import httpx
 import anime.anime_mapping as anime_mapping
 
-kitsu_addon_url = 'https://anime-kitsu.strem.fun'
+kitsu_addon_url = 'https://kitsufortheweebs.midnightignite.me'
 
 # Cache load
 kitsu_cache_ids = None
