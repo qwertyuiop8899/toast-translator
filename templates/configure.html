@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,12 +11,26 @@
     <script src="/static/addonCard.js"></script>
     <script src="/static/installer.js"></script>
 </head>
+
 <body>
-    
+
     <div class="container">
-        <div class="title">
-            <span class="toast">Toast</span>
-            <span class="translator">Translator</span>
+        <div class="header-container">
+            <div class="title">
+                <span class="toast">Toast</span>
+                <span class="translator">Translator</span>
+            </div>
+
+            <div class="elfhosted-badge">
+                <img src="https://store.elfhosted.com/wp-content/uploads/2024/11/logo.svg" alt="ElfHosted Logo"
+                    class="elf-logo">
+                <p class="elf-text">
+                    Hosting donated by <a href="https://store.elfhosted.com/" target="_blank"
+                        class="elf-link">ElfHosted</a> ❤️<br>
+                    <a href="https://stremio-addons-guide.elfhosted.com/" target="_blank" class="elf-link">Stremio
+                        Addons Guide</a>
+                </p>
+            </div>
         </div>
 
         <div class="description" id="desc-head">
@@ -23,16 +38,25 @@
 
             <h2>📚 Compatible catalogs:</h2>
             <ul class="addon-list">
-                <li>🎬 <a href="stremio://v3-cinemeta.strem.io/manifest.json" target="_blank" rel="noopener">Cinemeta</a></li>
-                <li>🏛️ <a href="stremio://caching.stremio.net/manifest.json" target="_blank" rel="noopener">Public Domains</a></li>
-                <li>📺 <a href="https://7a82163c306e-stremio-netflix-catalog-addon.baby-beamup.club/configure" target="_blank" rel="noopener">Streaming Catalogs</a></li>
-                <li>🎥 <a href="https://1fe84bc728af-imdb-catalogs.baby-beamup.club/manifest.json" target="_blank" rel="noopener">IMDB Catalogs</a></li>
-                <li>🍅 <a href="https://7a82163c306e-rottentomatoes.baby-beamup.club/manifest.json" target="_blank" rel="noopener">Rotten Tomatoes Catalogs</a></li>
-                <li>📊 <a href="https://1fe84bc728af-stremio-mdblist.baby-beamup.club/configure" target="_blank" rel="noopener">MDBLists Catalogs</a></li>
+                <li>🎬 <a href="stremio://v3-cinemeta.strem.io/manifest.json" target="_blank"
+                        rel="noopener">Cinemeta</a></li>
+                <li>🏛️ <a href="stremio://caching.stremio.net/manifest.json" target="_blank" rel="noopener">Public
+                        Domains</a></li>
+                <li>📺 <a href="https://7a82163c306e-stremio-netflix-catalog-addon.baby-beamup.club/configure"
+                        target="_blank" rel="noopener">Streaming Catalogs</a></li>
+                <li>🎥 <a href="https://1fe84bc728af-imdb-catalogs.baby-beamup.club/manifest.json" target="_blank"
+                        rel="noopener">IMDB Catalogs</a></li>
+                <li>🍅 <a href="https://7a82163c306e-rottentomatoes.baby-beamup.club/manifest.json" target="_blank"
+                        rel="noopener">Rotten Tomatoes Catalogs</a></li>
+                <li>📊 <a href="https://1fe84bc728af-stremio-mdblist.baby-beamup.club/configure" target="_blank"
+                        rel="noopener">MDBLists Catalogs</a></li>
                 <li>🎭 <a href="https://trakt.dexter21767.com/configure/" target="_blank" rel="noopener">Trakt</a></li>
-                <li>🍣 <a href="stremio://anime-kitsu.strem.fun/manifest.json" target="_blank" rel="noopener">Anime Kitsu</a></li>
-                <li>🍜 <a href="https://1fe84bc728af-stremio-anime-catalogs.baby-beamup.club/configure" target="_blank" rel="noopener">Anime Catalogs</a></li>
-                <li>🦸‍♂️ <a href="stremio://addon-marvel.onrender.com/manifest.json" target="_blank" rel="noopener">Marvel Catalogs</a></li>
+                <li>🍣 <a href="stremio://anime-kitsu.strem.fun/manifest.json" target="_blank" rel="noopener">Anime
+                        Kitsu</a></li>
+                <li>🍜 <a href="https://1fe84bc728af-stremio-anime-catalogs.baby-beamup.club/configure" target="_blank"
+                        rel="noopener">Anime Catalogs</a></li>
+                <li>🦸‍♂️ <a href="stremio://addon-marvel.onrender.com/manifest.json" target="_blank"
+                        rel="noopener">Marvel Catalogs</a></li>
             </ul>
 
             <h2>🔧 How to translate:</h2>
@@ -45,9 +69,11 @@
 
             <h2>❓ Configuration Notes:</h2>
             <ul>
-                <li>🖼️ <strong>RPDB Posters</strong> → RPDB posters in English with free key, in selected language if tier is greater than 0</li>
+                <li>🖼️ <strong>RPDB Posters</strong> → RPDB posters in English with free key, in selected language if
+                    tier is greater than 0</li>
                 <li>🖼️ <strong>Toast Ratings Posters</strong> → free posters with ratings in selected language</li>
-                <li>🖼️ <strong>Top Posters</strong> → posters with ratings. <a href="https://api.top-streaming.stream/" class="generate-link-btn">Get API KEY</a> </li>
+                <li>🖼️ <strong>Top Posters</strong> → posters with ratings. <a href="https://api.top-streaming.stream/"
+                        class="generate-link-btn">Get API KEY</a> </li>
             </ul>
 
             <h2>🔐 Why login?:</h2>
@@ -59,7 +85,7 @@
 
             <h2>🧩 Link Generator:</h2>
             <ul>
-                <li>If you don't want to log in you can use the 
+                <li>If you don't want to log in you can use the
                     <a href="link_generator" class="generate-link-btn">Link Generator</a>
                     to generate addon installation URLs
                 </li>
@@ -132,4 +158,5 @@
         passwordInput.addEventListener("keydown", tryLoginOnEnter);
     });
 </script>
+
 </html>
