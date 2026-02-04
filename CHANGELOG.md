@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/qwertyuiop8899/toast-translator/compare/v1.0.1...v1.0.2) (2026-02-04)
+
+
+### Bug Fixes
+
+* fix elf image ([3f263d5](https://github.com/qwertyuiop8899/toast-translator/commit/3f263d5936ca17173ec494ead66e2560e29b4e91))
+
 ## [1.0.1](https://github.com/qwertyuiop8899/toast-translator/compare/v1.0.0...v1.0.1) (2026-02-03)
 
 
