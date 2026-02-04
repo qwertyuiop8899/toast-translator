@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/qwertyuiop8899/toast-translator/compare/v1.0.2...v1.0.3) (2026-02-04)
+
+
+### Bug Fixes
+
+* camel case elfhosted ([77bca4a](https://github.com/qwertyuiop8899/toast-translator/commit/77bca4a36fb577e024e542b8334bd9977da698fa))
+
 ## [1.0.2](https://github.com/qwertyuiop8899/toast-translator/compare/v1.0.1...v1.0.2) (2026-02-04)
 
 
