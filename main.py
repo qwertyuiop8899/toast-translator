@@ -161,7 +161,7 @@ async def get_manifest(addon_url, user_settings):
     if not is_translated:
         manifest['translated'] = True
         manifest['t_language'] = user_settings.get('language', 'it-IT')
-        manifest['name'] += f" {translator.LANGUAGE_FLAGS[user_settings.get('language', 'it-IT')]}"
+        manifest['name'] += f" {translator.LANGUAGE_FLAGS[user_settings.get('language', 'it-IT')]} | ElfHosted"
 
         if 'description' in manifest:
             manifest['description'] += f" | Translated by Toast Translator. {translator_version}"
