@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/qwertyuiop8899/toast-translator/compare/v1.0.3...v1.0.4) (2026-02-07)
+
+
+### Bug Fixes
+
+* elfhosted name ([e261999](https://github.com/qwertyuiop8899/toast-translator/commit/e261999785d5a67733cf37482a7bfbab9b8f7bc5))
+
 ## [1.0.3](https://github.com/qwertyuiop8899/toast-translator/compare/v1.0.2...v1.0.3) (2026-02-04)
 
 
