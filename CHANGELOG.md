@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.5](https://github.com/qwertyuiop8899/toast-translator/compare/v1.0.4...v1.0.5) (2026-03-29)
+
+
+### Bug Fixes
+
+* push ([4b743b3](https://github.com/qwertyuiop8899/toast-translator/commit/4b743b3947dfcf6f52278544ffdf2882e86cfabe))
+
 ## [1.0.4](https://github.com/qwertyuiop8899/toast-translator/compare/v1.0.3...v1.0.4) (2026-02-08)
 
 
